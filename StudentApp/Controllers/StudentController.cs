@@ -10,24 +10,24 @@ namespace StudentApp.Controllers
     {
         [HttpGet]
         [Route("All", Name = "GetAllStudents")]
-        public IEnumerable<Student> GetStudents()
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<IEnumerable<Student>> GetStudents()
         {
-            return CollegeRepository.Students;
+            return Ok(CollegeRepository.Students);
         }
 
         [HttpGet]
-        [Route("{id}", Name = "GetAllStudentById")]
-        public Student GetStudentById(int id)
+        [Route("{id:int}", Name = "GetAllStudentById")]
+        public ActionResult<Student> GetStudentById(int id)
         {
-            return CollegeRepository.Students.Where(n => n.Id == id).FirstOrDefault();
+            return Ok(CollegeRepository.Students.Where(n => n.Id == id).FirstOrDefault());
         }
 
-        //[HttpGet("{name:string}")]
-        //[Route("{id}", Name = "GetAllStudentByName")]
-        [HttpGet("{name}", Name = "GetStudentByName")]
-        public Student GetStudentByName(string name)
+        [HttpGet("{name:alpha}", Name = "GetStudentByName")]
+        public ActionResult<Student> GetStudentByName(string name)
         {
-            return CollegeRepository.Students.Where(n => n.Name == name).FirstOrDefault();
+            return Ok(CollegeRepository.Students.Where(n => n.Name == name).FirstOrDefault());
         }
 
         [HttpDelete("{id}", Name = "DeleteStudentById")]
