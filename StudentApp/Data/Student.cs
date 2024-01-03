@@ -1,14 +1,17 @@
 ﻿using StudentApp.Models.Validators;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace StudentApp.Models
+namespace StudentApp.Data
 {
     public class Student
     {
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
         [Required(ErrorMessage = "Student name is required!")]
         [StringLength(30)]
-        public string Name { get; set; }
+        public string StudentName { get; set; }
         [Required(ErrorMessage = "Email is required!")]
         public string Email { get; set; }
         [Range(16, 35)]
@@ -19,8 +22,6 @@ namespace StudentApp.Models
         [Compare(nameof(Password))]
         public string ConfirmPassword { get; set; }
         [DateCheck]
-        public DateTime AdmissionDate { get; set; }
-
-
+        public DateTime DOB { get; set; }
     }
 }
