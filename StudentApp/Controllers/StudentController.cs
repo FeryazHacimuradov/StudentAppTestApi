@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.JsonPatch;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using StudentApp.Data;
 using StudentApp.Models;
 using System.Numerics;
@@ -12,20 +14,25 @@ namespace StudentApp.Controllers
     {
         private readonly ILogger<StudentController> _logger;
         private readonly CollegeDBContext _dbContext;
-        public StudentController(ILogger<StudentController> logger, CollegeDBContext dbContext)
+        private readonly IMapper _mapper;
+
+        public StudentController(ILogger<StudentController> logger, CollegeDBContext dbContext, IMapper mapper)
         {
             _logger = logger;
             _dbContext = dbContext;
+            _mapper = mapper;
         }
 
         [HttpGet]
         [Route("All", Name = "GetAllStudents")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<IEnumerable<Student>> GetStudents()
+        public async Task<ActionResult<IEnumerable<Student>>> GetStudentsAsync()
         {
-            _logger.LogInformation("GetStudents method started");
-            return Ok(_dbContext.Students);
+            var students = await _dbContext.Students.ToListAsync();
+            var studentDTOData = _mapper.Map<List<StudentDTO>>(students);
+
+            return Ok(studentDTOData);
         }
 
         [HttpGet]
@@ -36,9 +43,19 @@ namespace StudentApp.Controllers
         }
 
         [HttpGet("{name:alpha}", Name = "GetStudentByName")]
-        public ActionResult<Student> GetStudentByName(string name)
+        public async Task<ActionResult<Student>> GetStudentByNameAsync(string name)
         {
-            return Ok(_dbContext.Students.Where(n => n.Name == name).FirstOrDefault());
+            if (string.IsNullOrEmpty(name))
+                return BadRequest();
+
+            var student = await _dbContext.Students.Where(n => n.StudentName == name).FirstOrDefaultAsync();
+
+            if (student == null)
+                return NotFound($"The student with name {name} not found.");
+
+            var studentDTO = _mapper.Map<StudentDTO>(student);
+
+            return Ok(studentDTO);
         }
 
         [HttpPost]
@@ -46,31 +63,96 @@ namespace StudentApp.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<Student> CreateStudent([FromBody] Student student)
+        public async Task<ActionResult<Student>> CreateStudentAsync([FromBody] StudentDTO dto)
         {
-            return Ok("Created...");
+            if(dto == null)
+                return BadRequest();
+
+            Student student = _mapper.Map<Student>(dto);
+            await _dbContext.Students.AddAsync(student);
+            await _dbContext.SaveChangesAsync();
+
+            dto.Id = student.Id;
+
+
+            return CreatedAtRoute("GetStudentById", new { id = dto.Id}, dto);
         }
 
         [HttpPut]
         [Route("Update")]
-        public ActionResult<Student> UpdateStudent([FromBody] Student student)
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<Student>> UpdateStudentAsync([FromBody] StudentDTO dto)
         {
-            return Ok();
+            if (dto == null || dto.Id <=0)
+                return BadRequest();
+
+            var existingStudent = await _dbContext.Students.Where(s => s.Id == dto.Id).FirstOrDefaultAsync();
+
+            if(existingStudent == null) 
+                return NotFound();
+
+            var newRecord = _mapper.Map<Student>(dto);
+
+            _dbContext.Students.Update(newRecord);
+
+            await _dbContext.SaveChangesAsync();
+
+            return NoContent();
         }
 
         [HttpPatch]
         [Route("{id:int}/UpdatePartial")]
-        public ActionResult<Student> UpdateStudentPartial(int id, [FromBody] JsonPatchDocument<Student> patchDocument)
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<Student>> UpdateStudentPartialAsync(int id, [FromBody] JsonPatchDocument<StudentDTO> patchDocument)
         {
-            return Ok();
+            if (patchDocument == null || id <=0 )
+                return BadRequest();
+
+            var existingStudent = await _dbContext.Students.Where(s => s.Id == id).FirstOrDefaultAsync();
+
+            if(existingStudent == null)
+                return NotFound();
+
+            var studentDTO = _mapper.Map<StudentDTO>(existingStudent);
+
+            patchDocument.ApplyTo(studentDTO, ModelState);
+
+            if(!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            existingStudent = _mapper.Map<Student>(studentDTO);
+
+            await _dbContext.SaveChangesAsync();
+
+            return NoContent();
         }
 
         [HttpDelete("{id}", Name = "DeleteStudentById")]
-        public bool DeleteStudent(int id)
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<bool>> DeleteStudentAsync(int id)
         {
-            var student = _dbContext.Students.Where(n => n.Id == id).FirstOrDefault();
+            if(id <= 0)
+                return BadRequest();
+
+            var student = await _dbContext.Students.Where(n => n.Id == id).FirstOrDefaultAsync();
+
+            if (student == null)
+                return NotFound($"The student with id {id} not found.");
+
             _dbContext.Students.Remove(student);
-            return true;
+
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(true);
         }
     }
 }
