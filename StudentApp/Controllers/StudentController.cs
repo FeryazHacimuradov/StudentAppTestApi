@@ -1,11 +1,9 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using StudentApp.Data;
 using StudentApp.Data.Repository;
 using StudentApp.Models;
-using System.Numerics;
 
 namespace StudentApp.Controllers
 {

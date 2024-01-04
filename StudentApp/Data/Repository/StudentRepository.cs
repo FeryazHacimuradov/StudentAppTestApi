@@ -39,7 +39,7 @@ namespace StudentApp.Data.Repository
 
         public async Task<Student> GetByNameAsync(string name)
         {
-            return await _dbContext.Students.Where(student => student.StudentName.ToLower().Equals(name.ToLower())).FirstOrDefaultAsync();
+            return await _dbContext.Students.Where(student => student.StudentName.ToLower().Contains(name.ToLower())).FirstOrDefaultAsync();
         }
 
         public async Task<int> UpdateAsync(Student student)

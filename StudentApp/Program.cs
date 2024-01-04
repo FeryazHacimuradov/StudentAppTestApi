@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using StudentApp.Configurations;
 using StudentApp.Data;
+using StudentApp.Data.Repository;
 using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,6 +21,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddAutoMapper(typeof(AutoMapperConfig));
+
+builder.Services.AddScoped<IStudentRepository, StudentRepository>();
+builder.Services.AddScoped(typeof(ICollegeRepository<>), typeof(CollegeRepository<>));
 
 var app = builder.Build();
 
