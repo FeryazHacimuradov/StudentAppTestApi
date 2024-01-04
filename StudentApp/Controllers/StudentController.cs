@@ -13,9 +13,9 @@ namespace StudentApp.Controllers
     {
         private readonly ILogger<StudentController> _logger;
         private readonly IMapper _mapper;
-        private readonly IStudentRepository _studentRepository;
+        private readonly ICollegeRepository<Student> _studentRepository;
 
-        public StudentController(ILogger<StudentController> logger, IMapper mapper, IStudentRepository studentRepository)
+        public StudentController(ILogger<StudentController> logger, IMapper mapper, ICollegeRepository<Student> studentRepository)
         {
             _logger = logger;
             _mapper = mapper;
@@ -45,7 +45,7 @@ namespace StudentApp.Controllers
             if (id <= 0)
                 return BadRequest();
 
-            var student = await _studentRepository.GetByIdAsync(id);
+            var student = await _studentRepository.GetByIdAsync(student => student.Id == id);
 
             if(student == null)
                 return NotFound($"The student with id: {id} not found.");
@@ -65,7 +65,7 @@ namespace StudentApp.Controllers
             if (string.IsNullOrEmpty(name))
                 return BadRequest();
 
-            var student = await _studentRepository.GetByNameAsync(name);
+            var student = await _studentRepository.GetByNameAsync(student => student.StudentName.ToLower().Contains(name.ToLower()));
 
             if (student == null)
                 return NotFound($"The student with name {name} not found.");
@@ -87,9 +87,9 @@ namespace StudentApp.Controllers
 
             Student student = _mapper.Map<Student>(dto);
 
-            var id = await _studentRepository.CreateAsync(student);
+            var studentAfterCreation = await _studentRepository.CreateAsync(student);
 
-            dto.Id = id;
+            dto.Id = studentAfterCreation.Id;
 
 
             return CreatedAtRoute("GetStudentById", new { id = dto.Id}, dto);
@@ -106,7 +106,7 @@ namespace StudentApp.Controllers
             if (dto == null || dto.Id <=0)
                 return BadRequest();
 
-            var existingStudent = await _studentRepository.GetByIdAsync(dto.Id, true);
+            var existingStudent = await _studentRepository.GetByIdAsync(student => student.Id == dto.Id, true);
 
             if(existingStudent == null) 
                 return NotFound();
@@ -129,7 +129,7 @@ namespace StudentApp.Controllers
             if (patchDocument == null || id <=0 )
                 return BadRequest();
 
-            var existingStudent = await _studentRepository.GetByIdAsync(id, true);
+            var existingStudent = await _studentRepository.GetByIdAsync(student => student.Id == id, true);
 
             if (existingStudent == null)
                 return NotFound();
@@ -158,7 +158,7 @@ namespace StudentApp.Controllers
             if(id <= 0)
                 return BadRequest();
 
-            var student = await _studentRepository.GetByIdAsync(id);
+            var student = await _studentRepository.GetByIdAsync(student => student.Id == id);
 
             if (student == null)
                 return NotFound($"The student with id {id} not found.");
