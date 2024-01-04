@@ -17,13 +17,9 @@ namespace StudentApp.Data.Repository
             return student.Id;
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(Student student)
         {
-            var studentToDelete = await _dbContext.Students.Where(student => student.Id == id).FirstOrDefaultAsync();
-            if (studentToDelete == null)
-                throw new ArgumentNullException($"No student found with id: {id}");
-
-            _dbContext.Students.Remove(studentToDelete);
+            _dbContext.Students.Remove(student);
             await _dbContext.SaveChangesAsync();
             return true;
         }
@@ -33,9 +29,12 @@ namespace StudentApp.Data.Repository
             return await _dbContext.Students.ToListAsync();
         }
 
-        public async Task<Student> GetByIdAsync(int id)
+        public async Task<Student> GetByIdAsync(int id, bool useNoTracking = false)
         {
-            return await _dbContext.Students.Where(student => student.Id == id).FirstOrDefaultAsync();
+            if(useNoTracking)
+                return await _dbContext.Students.AsNoTracking().Where(student => student.Id == id).FirstOrDefaultAsync();
+            else
+                return await _dbContext.Students.Where(student => student.Id == id).FirstOrDefaultAsync();
         }
 
         public async Task<Student> GetByNameAsync(string name)
@@ -45,15 +44,8 @@ namespace StudentApp.Data.Repository
 
         public async Task<int> UpdateAsync(Student student)
         {
-            var studentToUpdate = await _dbContext.Students.Where(student => student.Id == student.Id).FirstOrDefaultAsync();
-            if (student == null)
-                throw new ArgumentNullException($"No student found with id: {student.Id}");
 
-            studentToUpdate.StudentName = student.StudentName;
-            studentToUpdate.Email = student.Email;
-            studentToUpdate.Address = student.Address;
-            studentToUpdate.DOB = student.DOB;
-
+            _dbContext.Update(student);
             await _dbContext.SaveChangesAsync();
             return student.Id;
         }
